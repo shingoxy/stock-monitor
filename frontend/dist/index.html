@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A股高股息监控平台</title>
+<style>
+:root{--bg:#0f1117;--surface:#1a1d26;--surface2:#252830;--border:#2d3040;--text:#e4e6ed;--text2:#8b8fa3;--primary:#4f8cff;--green:#22c55e;--red:#ef4444;--orange:#f59e0b;--blue:#3b82f6;--purple:#a855f7}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.6}
+.container{max-width:1400px;margin:0 auto;padding:16px}
+header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
+header h1{font-size:18px;font-weight:600;color:var(--primary)}
+header .status{font-size:12px;color:var(--text2)}
+nav{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;gap:0}
+nav a{padding:10px 16px;color:var(--text2);text-decoration:none;font-size:13px;border-bottom:2px solid transparent;transition:.2s}
+nav a:hover,nav a.active{color:var(--text);border-bottom-color:var(--primary)}
+.page{display:none}.page.active{display:block}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(2,1fr)}
+.grid-3{grid-template-columns:repeat(3,1fr)}
+.grid-4{grid-template-columns:repeat(4,1fr)}
+@media(max-width:768px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px}
+.card h3{font-size:13px;color:var(--text2);margin-bottom:8px;font-weight:500}
+.card .value{font-size:28px;font-weight:700}
+.card .sub{font-size:12px;color:var(--text2);margin-top:4px}
+.stat-green{color:var(--green)}.stat-red{color:var(--red)}.stat-orange{color:var(--orange)}.stat-blue{color:var(--blue)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:8px 12px;color:var(--text2);font-weight:500;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface)}
+td{padding:8px 12px;border-bottom:1px solid var(--border)}
+tr:hover{background:var(--surface2)}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(34,197,94,.15);color:var(--green)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+.badge-orange{background:rgba(245,158,11,.15);color:var(--orange)}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.badge-purple{background:rgba(168,85,247,.15);color:var(--purple)}
+input,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:6px 12px;border-radius:6px;font-size:13px}
+button{background:var(--primary);color:#fff;border:none;padding:8px 16px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:500}
+button:hover{opacity:.9}
+button.secondary{background:var(--surface2);color:var(--text)}
+.search-bar{display:flex;gap:8px;margin-bottom:16px;align-items:center}
+.loader{text-align:center;padding:40px;color:var(--text2)}
+.bar-chart{display:flex;align-items:flex-end;gap:4px;height:120px;padding:8px 0}
+.bar{background:var(--primary);border-radius:2px 2px 0 0;min-width:20px;position:relative;transition:.3s}
+.bar-label{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text2);white-space:nowrap}
+.detail-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px}
+.section-title{font-size:15px;font-weight:600;margin:16px 0 8px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.score-bar{height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;margin-top:4px}
+.score-fill{height:100%;border-radius:4px;transition:.5s}
+.stock-card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px}
+.stock-card{background:linear-gradient(145deg,var(--surface),#171a22);border:1px solid var(--border);border-radius:12px;padding:17px;cursor:pointer;transition:transform .18s,border-color .18s,box-shadow .18s}
+.stock-card:hover{transform:translateY(-2px);border-color:#435070;box-shadow:0 10px 28px rgba(0,0,0,.22)}
+.stock-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:14px}
+.stock-card-name{font-size:17px;font-weight:700}.stock-card-code{font-size:12px;color:var(--text2);margin-top:3px;letter-spacing:.4px}
+.stock-card-yield{text-align:right}.stock-card-yield strong{display:block;font-size:25px;color:var(--green);line-height:1}.stock-card-yield span{font-size:11px;color:var(--text2)}
+.stock-card-metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.stock-metric{background:var(--surface2);padding:10px 8px}.stock-metric label{display:block;font-size:10px;color:var(--text2);margin-bottom:4px}.stock-metric b{font-size:14px;font-weight:600}
+.stock-card-foot{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:12px;font-size:11px;color:var(--text2)}
+.empty-state{grid-column:1/-1;text-align:center;color:var(--text2);padding:48px 20px;border:1px dashed var(--border);border-radius:12px}
+.modal-overlay{display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.6);z-index:100;justify-content:center;align-items:center}
+.modal-overlay.show{display:flex}
+.modal{background:var(--surface);border-radius:12px;padding:24px;max-width:900px;width:95%;max-height:85vh;overflow-y:auto}
+.modal h2{margin-bottom:16px}
+.close-btn{float:right;background:none;color:var(--text2);font-size:20px;cursor:pointer;border:none}
+</style>
+</head>
+<body>
+<header>
+  <h1>A股高股息监控平台</h1>
+  <div class="status" id="dataStatus">数据加载中...</div>
+</header>
+<nav>
+  <a href="#" class="active" onclick="showPage('dashboard')">市场总览</a>
+  <a href="#" onclick="showPage('ranking')">高股息排行</a>
+  <a href="#" onclick="showPage('screener')">筛选器</a>
+  <a href="#" onclick="showPage('opportunities')">机会雷达</a>
+  <a href="#" onclick="showPage('calendar')">分红日历</a>
+</nav>
+
+<div class="container">
+  <!-- 市场总览 -->
+  <div id="dashboard" class="page active">
+    <div class="grid grid-4" id="overviewCards"></div>
+    <div class="section-title">行业平均股息率 TOP 15</div>
+    <div class="card" id="industryChart"></div>
+  </div>
+
+  <!-- 高股息排行 -->
+  <div id="ranking" class="page">
+    <div class="search-bar">
+      <input id="rankMinYield" type="number" step="0.5" value="3" min="0" style="width:100px">
+      <label style="font-size:12px;color:var(--text2)">最低股息率(%)</label>
+      <input id="rankMinYears" type="number" value="3" min="0" style="width:80px">
+      <label style="font-size:12px;color:var(--text2)">连续分红年</label>
+      <button onclick="loadRanking()">查询</button>
+    </div>
+    <div id="rankingCards" class="stock-card-grid"></div>
+  </div>
+
+  <!-- 筛选器 -->
+  <div id="screener" class="page">
+    <div class="search-bar">
+      <input id="scrYield" type="number" step="0.5" value="5" style="width:80px">
+      <label style="font-size:12px">股息率≥(%)</label>
+      <input id="scrYears" type="number" value="5" style="width:60px">
+      <label style="font-size:12px">连续年≥</label>
+      <input id="scrRoe" type="number" step="0.5" value="10" style="width:80px">
+      <label style="font-size:12px">ROE≥(%)</label>
+      <input id="scrMcap" type="number" value="100" style="width:80px">
+      <label style="font-size:12px">市值≥(亿)</label>
+      <button onclick="loadScreener()">筛选</button>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table id="screenerTable">
+        <thead><tr>
+          <th>代码</th><th>名称</th><th>行业</th><th>价格</th><th>市值(亿)</th>
+          <th>股息率</th><th>DPS</th><th>连续年</th><th>稳定性</th><th>ROE</th><th>陷阱</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 机会雷达 -->
+  <div id="opportunities" class="page">
+    <div class="search-bar">
+      <input id="oppPercentile" type="number" value="80" style="width:80px">
+      <label style="font-size:12px">百分位≥</label>
+      <button onclick="loadOpportunities()">扫描</button>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table id="oppTable">
+        <thead><tr>
+          <th>代码</th><th>名称</th><th>行业</th><th>价格</th>
+          <th>当前股息率</th><th>收益率百分位</th><th>P50股息率</th><th>P90股息率</th><th>陷阱风险</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 分红日历 -->
+  <div id="calendar" class="page">
+    <div class="search-bar">
+      <label style="font-size:12px">未来</label>
+      <input id="calDays" type="number" value="30" style="width:60px">
+      <label style="font-size:12px">天</label>
+      <button onclick="loadCalendar()">查询</button>
+    </div>
+    <div class="card" style="overflow-x:auto">
+      <table id="calTable">
+        <thead><tr><th>代码</th><th>名称</th><th>除息日</th><th>DPS</th><th>状态</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 股票详情弹窗 -->
+<div class="modal-overlay" id="detailModal">
+  <div class="modal">
+    <button class="close-btn" onclick="closeDetail()">&times;</button>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<script>
+const API = window.location.origin + '/api';
+let currentPage = 'dashboard';
+
+function showPage(name) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('active'));
+  event.target.classList.add('active');
+  currentPage = name;
+  if (name === 'dashboard') loadOverview();
+  if (name === 'ranking') loadRanking();
+  if (name === 'opportunities') loadOpportunities();
+  if (name === 'calendar') loadCalendar();
+}
+
+async function api(path) {
+  try {
+    const r = await fetch(API + path);
+    return await r.json();
+  } catch (e) {
+    console.error(e);
+    return { status: 'error', error: e.message };
+  }
+}
+
+function fmtPct(v) { return v != null ? v.toFixed(2) + '%' : '-'; }
+function fmtNum(v, d=2) { return v != null ? v.toFixed(d) : '-'; }
+function fmtMoney(v) {
+  if (v == null) return '-';
+  if (v >= 1e12) return (v/1e12).toFixed(1) + '万亿';
+  if (v >= 1e8) return (v/1e8).toFixed(0) + '亿';
+  if (v >= 1e4) return (v/1e4).toFixed(0) + '万';
+  return v.toFixed(0);
+}
+function riskBadge(risk) {
+  const cls = {LOW:'green',MEDIUM:'orange',HIGH:'red',EXTREME:'red'}[risk]||'blue';
+  return `<span class="badge badge-${cls}">${risk||'-'}</span>`;
+}
+function gradeBadge(g) {
+  const cls = {S:'blue',A:'green',B:'green',C:'orange',D:'red'}[g]||'blue';
+  return `<span class="badge badge-${cls}">${g||'-'}</span>`;
+}
+
+async function loadOverview() {
+  const d = await api('/market/overview');
+  if (d.status !== 'ok') return;
+  const data = d.data;
+  const dist = data.yield_distribution;
+  document.getElementById('overviewCards').innerHTML = `
+    <div class="card"><h3>全A股票数</h3><div class="value">${data.total_stocks}</div></div>
+    <div class="card"><h3>有分红数据</h3><div class="value stat-blue">${data.stocks_with_yield}</div></div>
+    <div class="card"><h3>股息率 ≥ 3%</h3><div class="value stat-green">${dist[3]}</div></div>
+    <div class="card"><h3>股息率 ≥ 5%</h3><div class="value stat-green">${dist[5]}</div></div>
+    <div class="card"><h3>股息率 ≥ 6%</h3><div class="value stat-orange">${dist[6]}</div></div>
+    <div class="card"><h3>股息率 ≥ 7%</h3><div class="value stat-orange">${dist[7]}</div></div>
+    <div class="card"><h3>股息率 ≥ 8%</h3><div class="value stat-red">${dist[8]}</div></div>
+    <div class="card"><h3>最新价格日期</h3><div class="value" style="font-size:14px">${data.latest_price_date||'-'}</div></div>
+  `;
+  const industries = data.industry_avg_yield || [];
+  if (industries.length > 0) {
+    const maxVal = Math.max(...industries.map(i => i.avg_yield));
+    document.getElementById('industryChart').innerHTML = `
+      <div class="bar-chart">
+        ${industries.slice(0, 15).map(i => `
+          <div class="bar" style="height:${i.avg_yield/maxVal*100}%;width:100%;flex:1;background:var(--primary)">
+            <div class="bar-label">${i.industry.slice(0,4)}<br>${i.avg_yield}%</div>
+          </div>
+        `).join('')}
+      </div>
+    `;
+  }
+  document.getElementById('dataStatus').textContent = `股票: ${data.total_stocks} | 有分红: ${data.stocks_with_yield}`;
+}
+
+async function loadRanking() {
+  const yield_ = document.getElementById('rankMinYield').value;
+  const years = document.getElementById('rankMinYears').value;
+  const d = await api(`/dividends/ranking?min_yield=${yield_}&min_years=${years}&page_size=100`);
+  if (d.status !== 'ok') return;
+  const cards = document.getElementById('rankingCards');
+  const items = d.data.items || [];
+  cards.innerHTML = items.length ? items.map((r, i) => `
+    <article class="stock-card" onclick="showDetail('${r.symbol}')">
+      <div class="stock-card-head">
+        <div><div class="stock-card-name">${r.name||'-'}</div><div class="stock-card-code">#${i+1} · ${r.symbol} · ${r.exchange||'-'}</div></div>
+        <div class="stock-card-yield"><strong>${fmtPct(r.ttm_yield)}</strong><span>TTM 股息率</span></div>
+      </div>
+      <div class="stock-card-metrics">
+        <div class="stock-metric"><label>当前股价</label><b>¥${fmtNum(r.price)}</b></div>
+        <div class="stock-metric"><label>市盈率 PE</label><b>${r.pe_ttm!=null?fmtNum(r.pe_ttm,1):'-'}</b></div>
+        <div class="stock-metric"><label>今年每股分红</label><b>¥${fmtNum(r.this_year_dps,3)}</b></div>
+        <div class="stock-metric"><label>TTM 每股分红</label><b>¥${fmtNum(r.ttm_dps,3)}</b></div>
+        <div class="stock-metric"><label>连续分红</label><b>${r.consecutive_years||0} 年</b></div>
+        <div class="stock-metric"><label>5年分红增长</label><b>${fmtPct(r.cagr_5y)}</b></div>
+      </div>
+      <div class="stock-card-foot">
+        <span>${r.industry||'行业待补充'} · 数据 ${r.price_date||'-'}</span>
+        <span>${gradeBadge(r.stability_grade)} ${riskBadge(r.trap_risk)}</span>
+      </div>
+    </article>
+  `).join('') : '<div class="empty-state">当前条件下暂无股票，请降低筛选阈值或先运行数据同步。</div>';
+}
+
+async function loadScreener() {
+  const y = document.getElementById('scrYield').value;
+  const yr = document.getElementById('scrYears').value;
+  const roe = document.getElementById('scrRoe').value;
+  const mcap = document.getElementById('scrMcap').value * 1e8;
+  const d = await api(`/screener/run?min_yield=${y}&min_years=${yr}&min_roe=${roe}&min_mcap=${mcap}&page_size=100`);
+  if (d.status !== 'ok') return;
+  const tbody = document.querySelector('#screenerTable tbody');
+  tbody.innerHTML = (d.data.items || []).map(r => `
+    <tr onclick="showDetail('${r.symbol}')" style="cursor:pointer">
+      <td>${r.symbol}</td><td>${r.name}</td><td>${r.industry||'-'}</td>
+      <td>${fmtNum(r.price)}</td><td>${fmtMoney(r.market_cap)}</td>
+      <td class="stat-green">${fmtPct(r.ttm_yield)}</td><td>${fmtNum(r.dps)}</td>
+      <td>${r.consecutive_years||'-'}年</td><td>${gradeBadge(r.stability_grade)}</td>
+      <td>${fmtPct(r.roe)}</td><td>${riskBadge(r.trap_risk)}</td>
+    </tr>
+  `).join('');
+}
+
+async function loadOpportunities() {
+  const pct = document.getElementById('oppPercentile').value;
+  const d = await api(`/dividends/opportunities?percentile_threshold=${pct}`);
+  if (d.status !== 'ok') return;
+  const tbody = document.querySelector('#oppTable tbody');
+  tbody.innerHTML = (d.data.items || []).map(r => `
+    <tr onclick="showDetail('${r.symbol}')" style="cursor:pointer">
+      <td>${r.symbol}</td><td>${r.name}</td><td>${r.industry||'-'}</td>
+      <td>${fmtNum(r.price)}</td>
+      <td class="stat-green">${fmtPct(r.ttm_yield)}</td>
+      <td class="stat-orange">${fmtNum(r.yield_percentile,1)}%<div style="font-size:10px;color:var(--text2)">${r.percentile_basis==='historical_5y'?'近5年历史':'全市场横截面'}</div></td>
+      <td>${fmtPct(r.p50_yield)}</td><td>${fmtPct(r.p90_yield)}</td>
+      <td>${riskBadge(r.trap_risk)}</td>
+    </tr>
+  `).join('');
+}
+
+async function loadCalendar() {
+  const days = document.getElementById('calDays').value;
+  const d = await api(`/dividends/calendar?days=${days}`);
+  if (d.status !== 'ok') return;
+  const tbody = document.querySelector('#calTable tbody');
+  tbody.innerHTML = (d.data.items || []).map(r => `
+    <tr><td>${r.symbol}</td><td>${r.name}</td><td>${r.ex_date}</td>
+    <td>${fmtNum(r.dps)}</td><td>${r.status}</td></tr>
+  `).join('');
+}
+
+async function showDetail(symbol) {
+  document.getElementById('detailModal').classList.add('show');
+  document.getElementById('detailContent').innerHTML = '<div class="loader">加载中...</div>';
+  const d = await api(`/stocks/${symbol}/detail`);
+  if (d.status !== 'ok') { document.getElementById('detailContent').innerHTML = '加载失败'; return; }
+  const data = d.data;
+  const y = data.yields || {};
+  const s = data.stability || {};
+  const g = data.growth || {};
+  const sc = data.score || {};
+  const trap = data.trap || {};
+  const zone = data.zone || {};
+  const fin = data.financials || {};
+  const debt = data.debt_risk || {};
+  const yearly = data.yearly_dps || {};
+  const targets = data.target_prices || {};
+
+  document.getElementById('detailContent').innerHTML = `
+    <h2>${data.basic.name} (${data.basic.symbol})</h2>
+    <div style="font-size:13px;color:var(--text2);margin-bottom:16px">${data.basic.industry||''} | ${data.basic.exchange} | 市值 ${fmtMoney(data.basic.market_cap)}</div>
+
+    <div class="grid grid-4" style="margin-bottom:16px">
+      <div class="card"><h3>当前价格</h3><div class="value">¥${fmtNum(data.price)}</div></div>
+      <div class="card"><h3>TTM股息率</h3><div class="value stat-green">${fmtPct(y.ttm_yield)}</div></div>
+      <div class="card"><h3>综合评分</h3><div class="value stat-blue">${fmtNum(sc.composite_score,1)}</div></div>
+      <div class="card"><h3>陷阱风险</h3><div class="value">${riskBadge(trap.risk_level)}</div></div>
+    </div>
+
+    <div class="section-title">股息率概览</div>
+    <div class="grid grid-4">
+      <div class="card"><h3>TTM DPS</h3><div class="value">¥${fmtNum(y.ttm_dps)}</div></div>
+      <div class="card"><h3>年度DPS (${new Date().getFullYear()-1})</h3><div class="value">¥${fmtNum(y.annual_dps)}</div></div>
+      <div class="card"><h3>Forward DPS</h3><div class="value">¥${fmtNum(y.forward_dps)}</div></div>
+      <div class="card"><h3>Proposed DPS</h3><div class="value">¥${fmtNum(y.proposed_dps)}</div></div>
+    </div>
+
+    <div class="section-title">估值区间</div>
+    <div class="card">
+      <div style="font-size:14px;margin-bottom:8px">${zone.description||'数据不足'}</div>
+      <div class="grid grid-5" style="grid-template-columns:repeat(5,1fr)">
+        ${Object.entries(data.valuation_stats||{}).filter(([k])=>['min','p20','p50','p80','p90','max'].includes(k)).map(([k,v])=>`
+          <div style="text-align:center"><div style="font-size:11px;color:var(--text2)">${k.toUpperCase()}</div><div style="font-size:15px">${fmtPct(v)}</div></div>
+        `).join('')}
+      </div>
+    </div>
+
+    <div class="section-title">目标股价矩阵</div>
+    <div class="card">
+      <table><thead><tr>${Object.keys(targets).map(k=>`<th>${k}</th>`).join('')}</tr></thead>
+      <tbody><tr>${Object.values(targets).map(v=>`<td>¥${fmtNum(v)}</td>`).join('')}</tr></tbody></table>
+    </div>
+
+    <div class="section-title">分红稳定性</div>
+    <div class="grid grid-3">
+      <div class="card"><h3>连续分红</h3><div class="value">${s.consecutive_years||'-'}年</div><div class="sub">评级 ${gradeBadge(s.grade)}</div></div>
+      <div class="card"><h3>5Y CAGR</h3><div class="value ${g.cagr_5y>0?'stat-green':'stat-red'}">${fmtPct(g.cagr_5y)}</div></div>
+      <div class="card"><h3>下降次数</h3><div class="value">${s.decline_count||0}次</div></div>
+    </div>
+    <div class="card" style="margin-top:8px">
+      <div style="font-size:12px;color:var(--text2)">评分依据:</div>
+      <ul style="font-size:12px;padding-left:16px;margin-top:4px">${(s.reasons||[]).map(r=>`<li>${r}</li>`).join('')}</ul>
+    </div>
+
+    <div class="section-title">财务指标</div>
+    <div class="grid grid-3">
+      <div class="card"><h3>ROE</h3><div class="value">${fmtPct(fin.roe)}</div></div>
+      <div class="card"><h3>净利率</h3><div class="value">${fmtPct(fin.net_margin)}</div></div>
+      <div class="card"><h3>资产负债率</h3><div class="value ${debt.risk_level==='high'?'stat-red':''}">${fmtPct(debt.debt_ratio)}</div></div>
+    </div>
+
+    <div class="section-title">历史年度DPS</div>
+    <div class="card">
+      <table><thead><tr><th>年份</th><th>DPS</th></tr></thead>
+      <tbody>${Object.entries(yearly).sort((a,b)=>b[0]-a[0]).map(([yr,dps])=>`
+        <tr><td>${yr}</td><td>¥${fmtNum(dps)}</td></tr>
+      `).join('')}</tbody></table>
+    </div>
+
+    <div class="section-title">陷阱检测</div>
+    <div class="card">
+      <div style="font-size:13px">${riskBadge(trap.risk_level)} 触发${trap.triggered_count||0}条规则</div>
+      <ul style="font-size:12px;padding-left:16px;margin-top:4px">${(trap.details||[]).map(d=>`<li>${d}</li>`).join('') || '<li>无触发规则</li>'}</ul>
+    </div>
+
+    <div class="section-title">综合评分构成</div>
+    <div class="detail-grid">
+      ${[
+        ['股息率','yield_score',sc.yield_score],
+        ['稳定性','stability_score',sc.stability_score],
+        ['增长','growth_score',sc.growth_score],
+        ['派息可持续','payout_score',sc.payout_score],
+        ['现金流','cashflow_score',sc.cashflow_score],
+        ['财务质量','quality_score',sc.quality_score],
+        ['估值','valuation_score',sc.valuation_score],
+      ].map(([label,key,val])=>`
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:80px;font-size:12px;color:var(--text2)">${label}</div>
+          <div class="score-bar" style="flex:1"><div class="score-fill" style="width:${val||0}%;background:var(--primary)"></div></div>
+          <div style="width:30px;font-size:12px;text-align:right">${fmtNum(val,0)}</div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="margin-top:12px;text-align:center;font-size:11px;color:var(--text2)">
+      以上分析仅基于公开数据和规则计算，不构成投资建议
+    </div>
+  `;
+}
+
+function closeDetail() {
+  document.getElementById('detailModal').classList.remove('show');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadOverview();
+  loadRanking();
+});
+</script>
+</body>
+</html>
